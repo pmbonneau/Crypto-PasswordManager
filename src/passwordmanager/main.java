@@ -65,6 +65,14 @@ public class main {
         optReadEntries.setRequired(false);
         options.addOption(optReadEntries);
         
+        Option optDecrypt = new Option("d", "decrypt", true, "decrypt entries");
+        optDecrypt.setRequired(false);
+        options.addOption(optDecrypt);
+        
+        Option optLine = new Option("i", "line", true, "specific line");
+        optLine.setRequired(false);
+        options.addOption(optLine);
+        
         Option optService = new Option("s", "service", true, "service which uses the password");
         optService.setRequired(false);
         options.addOption(optService);
@@ -74,11 +82,11 @@ public class main {
         options.addOption(optAddress);
         
         Option optUsername = new Option("n", "username", true, "account username");
-        optUsername.setRequired(false);
+        optUsername.setOptionalArg(true);
         options.addOption(optUsername);
         
         Option optPassword = new Option("p", "password", true, "account password");
-        optPassword.setRequired(false);
+        optPassword.setOptionalArg(true);
         options.addOption(optPassword);
         
         Option optComment = new Option("c", "comment", true, "entry comment");
@@ -102,13 +110,32 @@ public class main {
             return;
         }
 
+        boolean UsernameSet = false;
+        boolean PasswordSet = false;
+        for (int i = 0; i < args.length; i++)
+        {
+            if (args[i].equals("-n"))
+            {
+                UsernameSet = true;
+            }
+            
+            if (args[i].equals("-p"))
+            {
+                PasswordSet = true;
+            }
+        }
+        
         String BagPasswordWrite = cmd.getOptionValue("add");
-        String BagPasswordRead = cmd.getOptionValue("l");
+        String BagPasswordRead = cmd.getOptionValue("read");
         String Service = cmd.getOptionValue("service");
         String Address = cmd.getOptionValue("address");
         String Username = cmd.getOptionValue("username");
         String Password = cmd.getOptionValue("password");
         String Comment = cmd.getOptionValue("comment");
+        String BagDecrypt = cmd.getOptionValue("decrypt");
+        String Line = cmd.getOptionValue("line");
+        
+        System.out.println("Line" + "   " + "Service" + "       " + "URL" + "        " + "Name" + "         " + "Password" + "       " + "Comment" + "   ");
         
         File KeyBagFile = new File("keybag.txt");
         if (KeyBagFile.exists() == false)
@@ -119,7 +146,7 @@ public class main {
             createBag();
         }
         
-        if (BagPasswordRead == null)
+        if (BagPasswordWrite != null)
         {
             String EncryptedService = doEncryption(Service,BagPasswordWrite);
             String EncryptedAddress = doEncryption(Address,BagPasswordWrite);
@@ -149,35 +176,101 @@ public class main {
             writefile.close(); 
         }
         
-        if (BagPasswordWrite == null)
+        if (BagPasswordRead != null)
         {
            Path Path = Paths.get("keybag.txt");
            List<String> lines = Files.readAllLines(Path);
+           
+           JSONObject obj;
+           String DecryptedLine = "";
+           String DecryptedService = "";
+           String DecryptedAddress = "";
+           String DecryptedUsername = "";
+           String DecryptedPassword = "";
+           String DecryptedComment = "";
+                   
            for (int i = 0; i < lines.size(); i++)
            {
-                JSONObject obj = new JSONObject(lines.get(i));
-                System.out.println(obj.get("Line"));
-                String DecryptedService = doDecryption(obj.get("Service").toString(),BagPasswordRead);
-                System.out.println(DecryptedService);
-                String DecryptedAddress = doDecryption(obj.get("URL").toString(),BagPasswordRead);
-                System.out.println(DecryptedAddress);
+                obj = new JSONObject(lines.get(i));
+                //System.out.println(obj.get("Line"));
+                DecryptedLine = obj.get("Line").toString();
+                DecryptedService = doDecryption(obj.get("Service").toString(),BagPasswordRead);
+                //System.out.println(DecryptedService);
+                DecryptedAddress = doDecryption(obj.get("URL").toString(),BagPasswordRead);
+                //System.out.println(DecryptedAddress);
                 //String DecryptedUsername = doDecryption(obj.get("Name").toString(),BagPasswordRead);
-                String DecryptedUsername = "*****";
-                System.out.println(DecryptedUsername);
+                DecryptedUsername = "*****";
+                //System.out.println(DecryptedUsername);
                 //String DecryptedPassword = doDecryption(obj.get("Password").toString(),BagPasswordRead);
-                String DecryptedPassword = "*****";
-                System.out.println(DecryptedPassword);
+                DecryptedPassword = "*****";
+                //System.out.println(DecryptedPassword);
                 if (Comment == null)
                 {
-                    String DecryptedComment = ""; 
-                    System.out.println(DecryptedComment);
+                    DecryptedComment = ""; 
+                    //System.out.println(DecryptedComment);
                 }
                 else
                 {
-                    String DecryptedComment = doDecryption(obj.get("Comment").toString(),BagPasswordRead);
-                    System.out.println(DecryptedComment);
+                    DecryptedComment = doDecryption(obj.get("Comment").toString(),BagPasswordRead);
+                    //System.out.println(DecryptedComment);
                 }
+                System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
            }
+        }
+        
+        if (BagDecrypt != null)
+        {
+            Path Path = Paths.get("keybag.txt");
+            List<String> lines = Files.readAllLines(Path);
+            int LineNumber = Integer.parseInt(Line);
+            
+            JSONObject obj = new JSONObject(lines.get(LineNumber));
+            String DecryptedLine = "";
+            String DecryptedService = "";
+            String DecryptedAddress = "";
+            String DecryptedUsername = "";
+            String DecryptedPassword = "";
+            String DecryptedComment = "";
+            
+            DecryptedLine = obj.get("Line").toString();
+            DecryptedService = doDecryption(obj.get("Service").toString(),BagDecrypt);
+            //System.out.println(DecryptedService);
+            DecryptedAddress = doDecryption(obj.get("URL").toString(),BagDecrypt);
+            //System.out.println(DecryptedAddress);
+            
+            if (UsernameSet == true && Username == null)
+            {
+                DecryptedUsername = doDecryption(obj.get("Name").toString(),BagDecrypt);
+                //System.out.println(DecryptedUsername);
+            }
+            else
+            {
+                DecryptedUsername = "*****";
+                //System.out.println(DecryptedUsername);
+            }
+            
+            if (PasswordSet == true && Password == null)
+            {
+                DecryptedPassword = doDecryption(obj.get("Password").toString(),BagDecrypt);
+                //System.out.println(DecryptedPassword);
+            }
+            else
+            {
+                DecryptedPassword = "*****";
+                //System.out.println(DecryptedPassword);
+            }
+            
+            if (Comment == null)
+            {
+                DecryptedComment = ""; 
+                //System.out.println(DecryptedComment);
+            }
+            else
+            {
+                DecryptedComment = doDecryption(obj.get("Comment").toString(),BagDecrypt);
+                //System.out.println(DecryptedComment);
+            }
+            System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
         }
         
         
