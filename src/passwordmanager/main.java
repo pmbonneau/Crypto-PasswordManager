@@ -24,26 +24,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.Scanner;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import jdk.nashorn.internal.parser.JSONParser;
-import sun.misc.BASE64Encoder;
 
 /**
  *
- * @author root
+ * @author Pierre-Marc Bonneau
  */
 public class main {
 
@@ -114,11 +109,13 @@ public class main {
         boolean PasswordSet = false;
         for (int i = 0; i < args.length; i++)
         {
+            // Check if -n (username) arg has been set.
             if (args[i].equals("-n"))
             {
                 UsernameSet = true;
             }
             
+            // Check if -p (password) arg has been set.
             if (args[i].equals("-p"))
             {
                 PasswordSet = true;
@@ -135,19 +132,19 @@ public class main {
         String BagDecrypt = cmd.getOptionValue("decrypt");
         String Line = cmd.getOptionValue("line");
         
-        System.out.println("Line" + "   " + "Service" + "       " + "URL" + "        " + "Name" + "         " + "Password" + "       " + "Comment" + "   ");
-        
+        // Password manager file is named keybag.txt, which stores encrypted entries.
         File KeyBagFile = new File("keybag.txt");
+        
+        // We create a new password manager file if it does not already exists.
         if (KeyBagFile.exists() == false)
         {
-            //Scanner inputReader = new Scanner(System.in);
-            //System.out.println("Please enter new manager password.");
-            //String ManagerPassword = inputReader.nextLine();
             createBag();
         }
         
+        // Writing a new entry if -a (add) arg is set.
         if (BagPasswordWrite != null)
         {
+            // Encrypting info
             String EncryptedService = doEncryption(Service,BagPasswordWrite);
             String EncryptedAddress = doEncryption(Address,BagPasswordWrite);
             String EncryptedUsername = doEncryption(Username,BagPasswordWrite);
@@ -161,10 +158,14 @@ public class main {
             FileWriter writefile = new FileWriter("keybag.txt", true);
             FileReader readfile = new FileReader("keybag.txt");
             Path Path = Paths.get("keybag.txt");
+            
+            // Adding correct line number
             LineNumberReader LineCount = new LineNumberReader(readfile);
             String ActualLineCount = Long.toString(Files.lines(Path).count());
+            
+            // Creating new JSON object to store encrypted info.
             JSONObject obj = new JSONObject();
-            obj.put("Line", ActualLineCount);
+            obj.put("Line", ActualLineCount + 1);
             obj.put("Service", EncryptedService);
             obj.put("URL", EncryptedAddress);
             obj.put("Name", EncryptedUsername);
@@ -172,10 +173,11 @@ public class main {
             obj.put("Comment", EncryptedComment);
             writefile.write(obj.toString());
             writefile.write("\r\n");
-            //writefile.write(ActualLineCount + "|$|" + EncryptedService + "|$|" + EncryptedAddress + "|$|" + EncryptedUsername + "|$|" + EncryptedPass + "|$|" + EncryptedComment);
             writefile.close(); 
         }
         
+        // Reading all password manager entries, but keep username and password hidden.
+        // Reading from password manager if -l (read) arg is set.
         if (BagPasswordRead != null)
         {
            Path Path = Paths.get("keybag.txt");
@@ -188,36 +190,30 @@ public class main {
            String DecryptedUsername = "";
            String DecryptedPassword = "";
            String DecryptedComment = "";
-                   
+              
+           // Parsing JSON entries from file and do decryption.
            for (int i = 0; i < lines.size(); i++)
            {
                 obj = new JSONObject(lines.get(i));
-                //System.out.println(obj.get("Line"));
                 DecryptedLine = obj.get("Line").toString();
                 DecryptedService = doDecryption(obj.get("Service").toString(),BagPasswordRead);
-                //System.out.println(DecryptedService);
                 DecryptedAddress = doDecryption(obj.get("URL").toString(),BagPasswordRead);
-                //System.out.println(DecryptedAddress);
-                //String DecryptedUsername = doDecryption(obj.get("Name").toString(),BagPasswordRead);
                 DecryptedUsername = "*****";
-                //System.out.println(DecryptedUsername);
-                //String DecryptedPassword = doDecryption(obj.get("Password").toString(),BagPasswordRead);
                 DecryptedPassword = "*****";
-                //System.out.println(DecryptedPassword);
                 if (Comment == null)
                 {
                     DecryptedComment = ""; 
-                    //System.out.println(DecryptedComment);
                 }
                 else
                 {
                     DecryptedComment = doDecryption(obj.get("Comment").toString(),BagPasswordRead);
-                    //System.out.println(DecryptedComment);
                 }
+                // Printing lines
                 System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
            }
         }
         
+        // Reading specific password manager entries and reveal only username or only password or both.
         if (BagDecrypt != null)
         {
             Path Path = Paths.get("keybag.txt");
@@ -234,164 +230,119 @@ public class main {
             
             DecryptedLine = obj.get("Line").toString();
             DecryptedService = doDecryption(obj.get("Service").toString(),BagDecrypt);
-            //System.out.println(DecryptedService);
             DecryptedAddress = doDecryption(obj.get("URL").toString(),BagDecrypt);
-            //System.out.println(DecryptedAddress);
             
             if (UsernameSet == true && Username == null)
             {
                 DecryptedUsername = doDecryption(obj.get("Name").toString(),BagDecrypt);
-                //System.out.println(DecryptedUsername);
             }
             else
             {
                 DecryptedUsername = "*****";
-                //System.out.println(DecryptedUsername);
             }
             
             if (PasswordSet == true && Password == null)
             {
                 DecryptedPassword = doDecryption(obj.get("Password").toString(),BagDecrypt);
-                //System.out.println(DecryptedPassword);
             }
             else
             {
                 DecryptedPassword = "*****";
-                //System.out.println(DecryptedPassword);
             }
             
             if (Comment == null)
             {
                 DecryptedComment = ""; 
-                //System.out.println(DecryptedComment);
             }
             else
             {
                 DecryptedComment = doDecryption(obj.get("Comment").toString(),BagDecrypt);
-                //System.out.println(DecryptedComment);
             }
+            // Printing lines.
             System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
         }
-        
-        
     }
     
+    // This method creates a new keybag.
     public static void createBag() throws IOException, UnsupportedEncodingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException
     {
         FileWriter writefile = new FileWriter("keybag.txt", true);
-        //writefile.write("Line|$|Service|$|URL|$|Name|$|Password|$|Comment");
         writefile.close();
     }
     
-    public static String[] LineParser(String LineToParse)
-    {
-        return LineToParse.split("|$|");
-    }
-    
+    // This method encrypts a string using a key.
+    // Based from https://gist.github.com/itarato/abef95871756970a9dad
     public static String doEncryption(String plainText, String key) throws Exception 
     {
         byte[] clean = plainText.getBytes();
 
+        // Generating random IV.
         int ivSize = 16;
         byte[] iv = new byte[ivSize];
         SecureRandom random = new SecureRandom();
         random.nextBytes(iv);
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
 
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        digest.update(key.getBytes("UTF-8"));
-        byte[] keyBytes = new byte[16];
-        System.arraycopy(digest.digest(), 0, keyBytes, 0, keyBytes.length);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
+        // Hashing the key to make it fixed size.
+        MessageDigest Hash = MessageDigest.getInstance("SHA-256");
+        Hash.update(key.getBytes("UTF-8"));
+        byte[] KeyBytes = new byte[16];
+        System.arraycopy(Hash.digest(), 0, KeyBytes, 0, KeyBytes.length);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(KeyBytes, "AES");
 
+        // Set cipher to use AES/CBC/PKCS5Padding.
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec);
-        byte[] encrypted = cipher.doFinal(clean);
-
-        byte[] encryptedIVAndText = new byte[ivSize + encrypted.length];
-        System.arraycopy(iv, 0, encryptedIVAndText, 0, ivSize);
-        System.arraycopy(encrypted, 0, encryptedIVAndText, ivSize, encrypted.length);
         
-        return Base64.getEncoder().encodeToString(encryptedIVAndText);
+        // Encrypt string.
+        byte[] EncryptedString = cipher.doFinal(clean);
+
+        // Concatenate IV and key.
+        byte[] EncryptedIVAndText = new byte[ivSize + EncryptedString.length];
+        System.arraycopy(iv, 0, EncryptedIVAndText, 0, ivSize);
+        System.arraycopy(EncryptedString, 0, EncryptedIVAndText, ivSize, EncryptedString.length);
+        
+        // Return IV and key encoded into a string.
+        return Base64.getEncoder().encodeToString(EncryptedIVAndText);
     }
     
+    // This method decrypts a string using an IV with key.
+    // Based from https://gist.github.com/itarato/abef95871756970a9dad
     public static String doDecryption(String encryptedIvTextBytes, String key) throws Exception 
     {
         int ivSize = 16;
         int keySize = 16;
 
-        byte[] pwn = Base64.getDecoder().decode(encryptedIvTextBytes);
+        // Decoding IV and key into byte array.
+        byte[] IvAndKeyArray = Base64.getDecoder().decode(encryptedIvTextBytes);
         
-        
+        // Rebuilding IvParameterSpec from IV in concatenated IV and key byte array.
         byte[] iv = new byte[ivSize];
-        System.arraycopy(pwn, 0, iv, 0, iv.length);
+        System.arraycopy(IvAndKeyArray, 0, iv, 0, iv.length);
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
 
-        int encryptedSize = pwn.length - ivSize;
-        byte[] encryptedBytes = new byte[encryptedSize];
-        System.arraycopy(pwn, ivSize, encryptedBytes, 0, encryptedSize);
+        int EncryptedSize = IvAndKeyArray.length - ivSize;
+        byte[] EncryptedBytes = new byte[EncryptedSize];
+        
+        // Getting key bytes from concatenated IV and key byte array.
+        System.arraycopy(IvAndKeyArray, ivSize, EncryptedBytes, 0, EncryptedSize);
 
-        byte[] keyBytes = new byte[keySize];
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.update(key.getBytes());
-        System.arraycopy(md.digest(), 0, keyBytes, 0, keyBytes.length);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
+        // Hashing key bytes.
+        byte[] KeyBytes = new byte[keySize];
+        MessageDigest Hash = MessageDigest.getInstance("SHA-256");
+        Hash.update(key.getBytes());
+        System.arraycopy(Hash.digest(), 0, KeyBytes, 0, KeyBytes.length);
+        
+        // Rebuilding SecretKey from hashed key bytes.
+        SecretKeySpec secretKeySpec = new SecretKeySpec(KeyBytes, "AES");
 
+        // Set cipher to use AES/CBC/PKCS5Padding.
         Cipher cipherDecrypt = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipherDecrypt.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-        byte[] decrypted = cipherDecrypt.doFinal(encryptedBytes);
+        
+        // Decrypt string.
+        byte[] Decrypted = cipherDecrypt.doFinal(EncryptedBytes);
 
-        return new String(decrypted);
-    }
-    
-    public static String[] doEncryptionOld(String Entry, String BagPassword) throws UnsupportedEncodingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException
-    {       
-        byte[] EntryArray = Entry.getBytes();
-        
-        int SizeIV = 16;
-        byte[] IV = new byte[SizeIV];
-        SecureRandom RandomGenerator = new SecureRandom();
-        RandomGenerator.nextBytes(IV);
-        IvParameterSpec IvParamSpec = new IvParameterSpec(IV);
-        
-        MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        sha.update(BagPassword.getBytes("UTF-8"));
-        byte[] BagPasswordBytes = new byte[16];
-        System.arraycopy(sha.digest(), 0, BagPasswordBytes, 0, BagPasswordBytes.length);
-        SecretKeySpec secretKey = new SecretKeySpec(BagPasswordBytes,"AES");
-        
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParamSpec);
-        byte[] EncryptedEntry = cipher.doFinal();
-        
-        String[] Output = new String[2];
-        Output[0] = Base64.getEncoder().encodeToString(EncryptedEntry);
-        Output[1] = Base64.getEncoder().encodeToString(IV);
-        
-        return Output;
-    }
-    
-    public static String doDecryptionOld(String IV, String EncryptedEntry, String BagPassword) throws UnsupportedEncodingException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException
-    {
-        int SizeIV = 16;
-        int SizeKey = 16;
-        
-        byte[] BytesIV = new byte[SizeIV];
-        BytesIV = Base64.getDecoder().decode(IV);
-        IvParameterSpec IvParamSpec = new IvParameterSpec(BytesIV);
-        
-        byte[] EncryptedEntryBytes = Base64.getDecoder().decode(EncryptedEntry);
-        
-        byte[] KeyBytes = new byte[SizeKey];
-        MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        sha.update(BagPassword.getBytes());
-        System.arraycopy(sha.digest(), 0, KeyBytes, 0, KeyBytes.length);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(KeyBytes,"AES");
-        
-        Cipher cipherDecrypt = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipherDecrypt.init(Cipher.DECRYPT_MODE, secretKeySpec, IvParamSpec);
-        byte[] DecryptedEntry = cipherDecrypt.doFinal(EncryptedEntryBytes);
-        
-        return new String(DecryptedEntry);
+        return new String(Decrypted);
     }
 }
