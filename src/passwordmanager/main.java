@@ -154,6 +154,10 @@ public class main {
             {
                 EncryptedComment = doEncryption(Comment,BagPasswordWrite);
             }
+            else
+            {
+                EncryptedComment = doEncryption("No comment",BagPasswordWrite);
+            } 
 
             FileWriter writefile = new FileWriter("keybag.txt", true);
             FileReader readfile = new FileReader("keybag.txt");
@@ -162,10 +166,11 @@ public class main {
             // Adding correct line number
             LineNumberReader LineCount = new LineNumberReader(readfile);
             String ActualLineCount = Long.toString(Files.lines(Path).count());
+            int integerActualLineCount = Integer.parseInt(ActualLineCount);
             
             // Creating new JSON object to store encrypted info.
             JSONObject obj = new JSONObject();
-            obj.put("Line", ActualLineCount + 1);
+            obj.put("Line", Integer.toString(integerActualLineCount + 1));
             obj.put("Service", EncryptedService);
             obj.put("URL", EncryptedAddress);
             obj.put("Name", EncryptedUsername);
@@ -180,6 +185,7 @@ public class main {
         // Reading from password manager if -l (read) arg is set.
         if (BagPasswordRead != null)
         {
+           System.out.println("Line" + "           " + "Service" + "           " + "URL" + "           " + "Name" + "          " + "Password" + "          " + "Comment" + "           ");
            Path Path = Paths.get("keybag.txt");
            List<String> lines = Files.readAllLines(Path);
            
@@ -200,14 +206,8 @@ public class main {
                 DecryptedAddress = doDecryption(obj.get("URL").toString(),BagPasswordRead);
                 DecryptedUsername = "*****";
                 DecryptedPassword = "*****";
-                if (Comment == null)
-                {
-                    DecryptedComment = ""; 
-                }
-                else
-                {
-                    DecryptedComment = doDecryption(obj.get("Comment").toString(),BagPasswordRead);
-                }
+                DecryptedComment = doDecryption(obj.get("Comment").toString(),BagPasswordRead);
+                
                 // Printing lines
                 System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
            }
@@ -216,11 +216,12 @@ public class main {
         // Reading specific password manager entries and reveal only username or only password or both.
         if (BagDecrypt != null)
         {
+            System.out.println("Line" + "           " + "Service" + "           " + "URL" + "           " + "Name" + "          " + "Password" + "          " + "Comment" + "           ");
             Path Path = Paths.get("keybag.txt");
             List<String> lines = Files.readAllLines(Path);
             int LineNumber = Integer.parseInt(Line);
             
-            JSONObject obj = new JSONObject(lines.get(LineNumber));
+            JSONObject obj = new JSONObject(lines.get(LineNumber - 1));
             String DecryptedLine = "";
             String DecryptedService = "";
             String DecryptedAddress = "";
@@ -250,14 +251,8 @@ public class main {
                 DecryptedPassword = "*****";
             }
             
-            if (Comment == null)
-            {
-                DecryptedComment = ""; 
-            }
-            else
-            {
-                DecryptedComment = doDecryption(obj.get("Comment").toString(),BagDecrypt);
-            }
+            DecryptedComment = doDecryption(obj.get("Comment").toString(),BagDecrypt);
+            
             // Printing lines.
             System.out.println(DecryptedLine + "   " + DecryptedService + "    " + DecryptedAddress + "  " + DecryptedUsername + "   " + DecryptedPassword + "   " + DecryptedComment);
         }
